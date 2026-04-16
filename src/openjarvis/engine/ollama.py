@@ -100,6 +100,7 @@ class OllamaEngine(InferenceEngine):
             resp = self._client.post("/api/chat", json=payload)
             if resp.status_code == 400 and tools:
                 # Model may not support function calling -- retry without tools
+                logger.warning("Model returned 400 with tools, retrying without tools (model may not support function calling)")
                 payload.pop("tools", None)
                 resp = self._client.post("/api/chat", json=payload)
             resp.raise_for_status()

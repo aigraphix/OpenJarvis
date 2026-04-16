@@ -20,6 +20,102 @@ import {
 } from 'lucide-react';
 import { useAppStore, type ThemeMode } from '../lib/store';
 import { checkHealth, fetchSpeechHealth, getMemoryStats } from '../lib/api';
+import { SystemPanel } from '../components/Chat/SystemPanel';
+import { preloadModel } from '../lib/api';
+
+const CLOUD_PROVIDERS = [
+  {
+    name: 'OpenAI',
+    storageKey: 'openjarvis-openai-key',
+    models: ['gpt-4o', 'gpt-4o-mini', 'o3-mini'],
+  },
+  {
+    name: 'Anthropic',
+    storageKey: 'openjarvis-anthropic-key',
+    models: ['claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5'],
+  },
+  {
+    name: 'Google',
+    storageKey: 'openjarvis-gemini-key',
+    models: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-3-pro'],
+  },
+  {
+    name: 'OpenRouter',
+    storageKey: 'openjarvis-openrouter-key',
+    models: ['openrouter/auto', 'openrouter/anthropic/claude-sonnet-4', 'openrouter/deepseek/deepseek-r1'],
+  },
+];
+
+function CloudModelList() {
+  const selectedModel = useAppStore((s) => s.selectedModel);
+  const setSelectedModel = useAppStore((s) => s.setSelectedModel);
+  const [loadingModel, setLoadingModel] = useState<string | null>(null);
+
+  const handleSelect = async (modelId: string) => {
+    if (selectedModel === modelId || loadingModel) return;
+    
+    setSelectedModel(modelId);
+    setLoadingModel(modelId);
+    
+    const { createConversation, setModelLoading, addLogEntry } = useAppStore.getState();
+    createConversation(modelId);
+    setModelLoading(true);
+    addLogEntry({ timestamp: Date.now(), level: 'info', category: 'model', message: `Switching to ${modelId}...` });
+    
+    try {
+      await preloadModel(modelId);
+      addLogEntry({ timestamp: Date.now(), level: 'info', category: 'model', message: `${modelId} loaded` });
+    } catch (e: any) {
+      addLogEntry({ timestamp: Date.now(), level: 'error', category: 'model', message: `Failed to load ${modelId}: ${e.message}` });
+    } finally {
+      setModelLoading(false);
+      setLoadingModel(null);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4 mt-4 w-full" style={{ borderTop: '1px solid var(--color-border-subtle)', paddingTop: '12px' }}>
+      {CLOUD_PROVIDERS.map(provider => {
+        let hasKey = false;
+        try { hasKey = !!localStorage.getItem(provider.storageKey); } catch {}
+        if (!hasKey) return null;
+        
+        return (
+          <div key={provider.name} className="flex flex-col gap-2 w-full">
+            <div className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>
+              {provider.name} Models
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {provider.models.map(model => {
+                const isActive = selectedModel === model;
+                const isLoading = loadingModel === model;
+                return (
+                  <button
+                    key={model}
+                    onClick={() => handleSelect(model)}
+                    disabled={isLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all"
+                    style={{
+                      background: isActive ? 'var(--color-accent)' : 'var(--color-bg-secondary)',
+                      color: isActive ? '#fff' : 'var(--color-text)',
+                      border: '1px solid',
+                      borderColor: isActive ? 'var(--color-accent)' : 'var(--color-border)',
+                      opacity: isLoading ? 0.7 : 1
+                    }}
+                  >
+                    <Globe size={14} style={{ color: isActive ? '#fff' : 'var(--color-text-tertiary)' }} />
+                    {model}
+                    {isLoading && <span className="ml-1 animate-pulse">...</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function OllamaModelList() {
   const [models, setModels] = useState<Array<{ name: string; size: number }>>([]);
@@ -220,6 +316,12 @@ export function SettingsPage() {
           )}
         </div>
 
+        <div className="flex flex-col gap-4 mb-4">
+          <Section title="System Information">
+            <SystemPanel />
+          </Section>
+        </div>
+
         <div className="flex flex-col gap-4">
           {/* Appearance */}
           <Section title="Appearance">
@@ -308,6 +410,7 @@ export function SettingsPage() {
                 <CloudProviderStatus label="OpenRouter" storageKey="openjarvis-openrouter-key" />
               </div>
             </SettingRow>
+            <CloudModelList />
           </Section>
 
           {/* API Keys */}

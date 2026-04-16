@@ -141,6 +141,22 @@ export function InputArea() {
       activeToolCalls: [],
       content: '',
     });
+
+    // ── Intent detection: eagerly open Canvas in loading state ──
+    const contentLower = content.toLowerCase();
+    const buildIntent = contentLower.match(/\b(generate\s+a?\s*pdf|create\s+a?\s*pdf|build\s+a?\s*pdf|make\s+a?\s*pdf|pdf\s+about|build\s+(?:me\s+)?a?\s*(?:website|site|app|page|ui))\b/i);
+    if (buildIntent) {
+      const store = useAppStore.getState();
+      store.setSystemPanelOpen(false);
+      useAppStore.setState({
+        canvasOpen: true,
+        canvasType: 'none' as const,
+        canvasContent: '',
+        canvasTitle: content.slice(0, 60),
+        canvasLoading: true,
+      });
+    }
+
     useAppStore.getState().addLogEntry({
       timestamp: Date.now(),
       level: 'info',
@@ -169,7 +185,7 @@ export function InputArea() {
             const tc: ToolCallInfo = {
               id: generateId(),
               tool: data.tool,
-              arguments: data.arguments || '',
+              arguments: typeof data.arguments === 'string' ? data.arguments : JSON.stringify(data.arguments, null, 2),
               status: 'running',
             };
             toolCalls.push(tc);
@@ -177,6 +193,20 @@ export function InputArea() {
               phase: `Calling ${data.tool}...`,
               activeToolCalls: [...toolCalls],
             });
+
+            // If a build tool is starting and canvas isn't open yet, open it now
+            if (['pdf_generate', 'delegate_task'].includes(data.tool) && !useAppStore.getState().canvasOpen) {
+              const store = useAppStore.getState();
+              store.setSystemPanelOpen(false);
+              useAppStore.setState({
+                canvasOpen: true,
+                canvasType: 'none' as const,
+                canvasContent: '',
+                canvasTitle: `Running ${data.tool}...`,
+                canvasLoading: true,
+              });
+            }
+
             updateLastAssistant(convId, accumulatedContent, [...toolCalls]);
             useAppStore.getState().addLogEntry({
               timestamp: Date.now(), level: 'info', category: 'tool',
@@ -192,13 +222,49 @@ export function InputArea() {
             if (tc) {
               tc.status = data.success ? 'success' : 'error';
               tc.latency = data.latency;
-              tc.result = data.result;
+              tc.result = typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2);
+            }
+
+            // ── Auto-open Canvas from tool results ──
+            // If pdf_generate succeeded and returned a URL in its result, open the PDF in canvas
+            const resultStr = tc?.result || '';
+            if (data.tool === 'pdf_generate' && data.success && resultStr !== '') {
+              const urlMatch = resultStr.match(/\[RENDER_CANVAS:pdf:(.*?)\]/);
+              if (urlMatch) {
+                useAppStore.getState().openCanvas('pdf', urlMatch[1], 'Generated PDF');
+              } else {
+                // Try to extract any /generated/*.pdf path
+                const pathMatch = resultStr.match(/(\/generated\/[^\s]+\.pdf)/);
+                if (pathMatch) {
+                  useAppStore.getState().openCanvas('pdf', pathMatch[1], 'Generated PDF');
+                }
+              }
             }
             setStreamState({
               phase: 'Generating...',
               activeToolCalls: [...toolCalls],
             });
             updateLastAssistant(convId, accumulatedContent, [...toolCalls]);
+          } catch {}
+        } else if (eventName === 'tool_results') {
+          // Bridge sends a summary of all tool results at the end
+          try {
+            const data = JSON.parse(sseEvent.data);
+            if (data.results && Array.isArray(data.results)) {
+              for (const tr of data.results) {
+                if (tr.tool_name === 'pdf_generate' && tr.success && tr.output) {
+                  const urlMatch = tr.output.match(/\[RENDER_CANVAS:pdf:(.*?)\]/);
+                  if (urlMatch) {
+                    useAppStore.getState().openCanvas('pdf', urlMatch[1], 'Generated PDF');
+                  } else {
+                    const pathMatch = tr.output.match(/(\/generated\/[^\s]+\.pdf)/);
+                    if (pathMatch) {
+                      useAppStore.getState().openCanvas('pdf', pathMatch[1], 'Generated PDF');
+                    }
+                  }
+                }
+              }
+            }
           } catch {}
         } else {
           try {

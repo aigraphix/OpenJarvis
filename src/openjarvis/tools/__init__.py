@@ -117,6 +117,22 @@ except ImportError:
     pass
 
 try:
+    import openjarvis.tools.pdf_generate  # noqa: F401
+except ImportError:
+    pass
+
+try:
+    import openjarvis.tools.pptx_generate  # noqa: F401
+except ImportError:
+    pass
+
+try:
+    import openjarvis.tools.agent_delegate  # noqa: F401
+    import openjarvis.tools.parallel_delegate  # noqa: F401
+except ImportError:
+    pass
+
+try:
     import openjarvis.tools.image_tool  # noqa: F401
 except ImportError:
     pass
@@ -138,6 +154,16 @@ except ImportError:
 
 try:
     import openjarvis.tools.digest_collect  # noqa: F401
+except ImportError:
+    pass
+
+try:
+    import openjarvis.tools.skill_fetcher  # noqa: F401
+except ImportError:
+    pass
+
+try:
+    import openjarvis.tools.canvas_design  # noqa: F401
 except ImportError:
     pass
 

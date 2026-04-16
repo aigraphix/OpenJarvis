@@ -47,17 +47,18 @@ export function ChatArea() {
 
   const isEmpty = messages.length === 0 && !streamState.isStreaming;
 
-  const PanelIcon = systemPanelOpen ? PanelRightClose : PanelRightOpen;
+  const canvasOpen = useAppStore((s) => s.canvasOpen);
+  const PanelIcon = canvasOpen ? PanelRightClose : PanelRightOpen;
 
   return (
     <div className="flex flex-col h-full">
-      {/* Toggle bar */}
+      {/* Toggle bar for Canvas */}
       <div className="flex items-center justify-end px-3 py-1.5 shrink-0">
         <button
-          onClick={toggleSystemPanel}
+          onClick={() => useAppStore.setState({ canvasOpen: !canvasOpen })}
           className="p-1.5 rounded-md transition-colors cursor-pointer"
           style={{ color: 'var(--color-text-tertiary)' }}
-          title={`${systemPanelOpen ? 'Hide' : 'Show'} system panel (${navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}+I)`}
+          title={`${canvasOpen ? 'Close' : 'Open'} Canvas`}
         >
           <PanelIcon size={16} />
         </button>

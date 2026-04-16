@@ -1,0 +1,4 @@
+# Used by skills/advanced-intelligence/scripts/task_advanced_parse.py
+markdown
+beautifulsoup4
+pypdf

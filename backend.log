@@ -1,0 +1,141 @@
+  Energy: apple (cpu_time_estimate)
+  Speech: faster-whisper
+WARNING openjarvis.agents.scheduler: croniter not installed, treating cron as 3600s interval
+  Scheduler: active
+  Memory:    active
+Starting OpenJarvis API server
+  Engine: ollama
+  Model:  gemma4:e4b
+  Agent:  orchestrator
+  URL:    http://127.0.0.1:8000
+INFO:     Started server process [72503]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50939 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50942 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50943 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51001 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51002 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51003 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51011 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51035 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51036 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51040 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51050 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51078 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51080 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51084 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51102 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51123 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51124 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51128 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51387 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51388 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51392 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51455 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51456 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51460 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51543 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51544 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51548 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51729 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51730 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51734 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51773 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51774 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51778 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51825 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51827 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51828 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51858 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51860 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51861 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51935 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51938 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51939 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52005 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52007 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52008 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52065 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52067 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52068 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52135 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52137 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52139 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52195 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52197 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52198 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52256 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52258 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52259 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52314 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52315 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52316 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52395 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52396 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52397 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52456 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52457 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52458 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52511 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52513 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52514 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52565 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52567 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52568 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52623 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52625 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52626 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52684 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52685 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52686 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52746 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52747 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52748 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52806 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52808 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52809 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52867 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52868 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52870 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52931 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52932 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52933 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52995 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52997 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52998 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53061 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53063 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53065 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53114 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53116 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53118 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53125 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53142 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53143 - "GET /v1/speech/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53144 - "GET /v1/connectors HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53145 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53146 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53147 - "GET /v1/info HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53155 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53158 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53160 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53161 - "GET /v1/speech/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53164 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53165 - "GET /v1/connectors HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53168 - "GET /v1/info HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53173 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53174 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53184 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53220 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53221 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53225 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53240 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53258 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53259 - "GET /v1/savings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53263 - "GET /v1/managed-agents HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72503]

@@ -183,6 +183,10 @@ def serve(
                 agent_kwargs = {"bus": bus}
                 if sec.capability_policy is not None:
                     agent_kwargs["capability_policy"] = sec.capability_policy
+                
+                sys_prompt = getattr(config.agent, "default_system_prompt", None)
+                if sys_prompt:
+                    agent_kwargs["system_prompt"] = sys_prompt
 
                 # Load tools for agents that support them
                 if getattr(agent_cls, "accepts_tools", False):
@@ -204,7 +208,20 @@ def serve(
                                 t.strip() for t in configured.split(",") if t.strip()
                             }
                     else:
-                        allowed = _DEFAULT_TOOLS
+                        configured = getattr(config.tools, "enabled", None)
+                        if configured:
+                            if isinstance(configured, list):
+                                allowed = {
+                                    t.strip()
+                                    for t in configured
+                                    if isinstance(t, str) and t.strip()
+                                }
+                            else:
+                                allowed = {
+                                    t.strip() for t in configured.split(",") if t.strip()
+                                }
+                        else:
+                            allowed = _DEFAULT_TOOLS
 
                     tools = []
                     for name in ToolRegistry.keys():

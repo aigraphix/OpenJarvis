@@ -75,34 +75,7 @@ export function SystemPanel() {
   const completionK = (savings?.total_completion_tokens ?? 0) / 1000;
 
   return (
-    <div
-      className="flex flex-col h-full overflow-y-auto"
-      style={{
-        width: 280,
-        minWidth: 280,
-        background: 'var(--color-bg)',
-        borderLeft: '1px solid var(--color-border)',
-      }}
-    >
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-4 py-3 shrink-0"
-        style={{ borderBottom: '1px solid var(--color-border)' }}
-      >
-        <span className="text-xs font-semibold tracking-wide uppercase" style={{ color: 'var(--color-text-secondary)' }}>
-          System
-        </span>
-        <button
-          onClick={toggleSystemPanel}
-          className="p-1 rounded-md transition-colors cursor-pointer"
-          style={{ color: 'var(--color-text-tertiary)' }}
-          title="Close panel"
-        >
-          <X size={14} />
-        </button>
-      </div>
-
-      <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-6">
         {/* Session Stats */}
         <section>
           <h4 className="text-[11px] font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
@@ -266,7 +239,6 @@ export function SystemPanel() {
             View Leaderboard
           </a>
         </section>
-      </div>
     </div>
   );
 }

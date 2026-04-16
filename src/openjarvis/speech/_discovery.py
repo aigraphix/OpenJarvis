@@ -69,7 +69,7 @@ def get_speech_backend(config: "JarvisConfig") -> Optional["SpeechBackend"]:
     # Auto-discovery: try each in priority order
     for key in DISCOVERY_ORDER:
         backend = _create_backend(key, config)
-        if backend is not None:
+        if backend is not None and backend.health():
             return backend
 
     return None

@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.nexus.selftest</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+      <key>Hour</key>
+      <integer>6</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/danny/Desktop/nexus</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+      <!-- Keep PATH explicit for launchd (pnpm/homebrew bins, etc.). -->
+      <key>PATH</key>
+      <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/danny/Library/pnpm</string>
+    </dict>
+
+    <key>ProgramArguments</key>
+    <array>
+      <string>/bin/bash</string>
+      <string>-lc</string>
+      <string><![CDATA[
+set -euo pipefail
+
+# Minimal “self-test” runner (NASTP-inspired) executed by launchd.
+# Writes a JSON report under:
+#   /Users/danny/Desktop/nexus/selftest/launchd/YYYY-MM-DD/<run_id>/report.json
+
+NEXUS_ROOT="/Users/danny/Desktop/nexus"
+OUT_ROOT="$NEXUS_ROOT/selftest/launchd"
+DATE="$(/bin/date +%F)"
+TS="$(/bin/date -u +%Y-%m-%dT%H:%M:%SZ)"
+RUN_ID="$(/usr/bin/uuidgen | tr '[:upper:]' '[:lower:]')"
+RUN_DIR="$OUT_ROOT/$DATE/$RUN_ID"
+
+/bin/mkdir -p "$RUN_DIR" "$NEXUS_ROOT/logs"
+
+# Quick checks (expand as needed)
+HAS_SOUL=0
+[ -f "$NEXUS_ROOT/SOUL.md" ] && HAS_SOUL=1
+
+HAS_USER=0
+[ -f "$NEXUS_ROOT/USER.md" ] && HAS_USER=1
+
+HAS_GOG=0
+command -v gog >/dev/null 2>&1 && HAS_GOG=1
+
+HAS_HIMALAYA=0
+command -v himalaya >/dev/null 2>&1 && HAS_HIMALAYA=1
+
+HAS_HIMALAYA_CFG=0
+[ -f "$HOME/.config/himalaya/config.toml" ] && HAS_HIMALAYA_CFG=1
+
+HAS_GOG_AUTH=0
+if [ "$HAS_GOG" -eq 1 ]; then
+  if gog auth list >/dev/null 2>&1; then
+    HAS_GOG_AUTH=1
+  fi
+fi
+
+export RUN_DIR RUN_ID TS HAS_SOUL HAS_USER HAS_GOG HAS_GOG_AUTH HAS_HIMALAYA HAS_HIMALAYA_CFG
+
+/usr/bin/python3 - <<'PY'
+import json, os
+
+run_dir = os.environ["RUN_DIR"]
+
+def b(name: str) -> bool:
+  return os.environ.get(name) == "1"
+
+report = {
+  "protocol": {"name": "NASTP", "version": "1.0"},
+  "run": {
+    "run_id": os.environ["RUN_ID"],
+    "started_at": os.environ["TS"],
+    "ended_at": os.environ["TS"],
+    "mode": "launchd"
+  },
+  "agent": {
+    "agent_id": "launchd",
+    "name": "com.nexus.selftest",
+    "role": "scheduled self-test"
+  },
+  "summary": {"status": "pass", "pass": 0, "fail": 0, "warn": 0},
+  "tests": [
+    {
+      "id": "IDN-001",
+      "category": "identity",
+      "name": "SOUL.md present",
+      "status": "pass" if b("HAS_SOUL") else "warn",
+      "evidence": [{"type": "path", "ref": "/Users/danny/Desktop/nexus/SOUL.md"}],
+    },
+    {
+      "id": "IDN-002",
+      "category": "identity",
+      "name": "USER.md present",
+      "status": "pass" if b("HAS_USER") else "warn",
+      "evidence": [{"type": "path", "ref": "/Users/danny/Desktop/nexus/USER.md"}],
+    },
+    {
+      "id": "TLS-010",
+      "category": "tools",
+      "name": "gog installed + auth available",
+      "status": "pass" if (b("HAS_GOG") and b("HAS_GOG_AUTH")) else "warn",
+      "evidence": [
+        {"type": "bool", "ref": "gog_installed", "value": b("HAS_GOG")},
+        {"type": "bool", "ref": "gog_auth_list_ok", "value": b("HAS_GOG_AUTH")},
+      ],
+    },
+    {
+      "id": "TLS-011",
+      "category": "tools",
+      "name": "himalaya installed + config present",
+      "status": "pass" if (b("HAS_HIMALAYA") and b("HAS_HIMALAYA_CFG")) else "warn",
+      "evidence": [
+        {"type": "bool", "ref": "himalaya_installed", "value": b("HAS_HIMALAYA")},
+        {"type": "bool", "ref": "himalaya_config_present", "value": b("HAS_HIMALAYA_CFG")},
+      ],
+    },
+  ],
+}
+
+for t in report["tests"]:
+  if t["status"] == "pass":
+    report["summary"]["pass"] += 1
+  elif t["status"] == "fail":
+    report["summary"]["fail"] += 1
+  else:
+    report["summary"]["warn"] += 1
+
+if report["summary"]["fail"] > 0:
+  report["summary"]["status"] = "fail"
+elif report["summary"]["warn"] > 0:
+  report["summary"]["status"] = "warn"
+
+out_path = os.path.join(run_dir, "report.json")
+with open(out_path, "w", encoding="utf-8") as f:
+  json.dump(report, f, indent=2)
+  f.write("\n")
+
+print(out_path)
+PY
+]]></string>
+    </array>
+
+    <key>StandardOutPath</key>
+    <string>/Users/danny/Desktop/nexus/logs/selftest-launchd.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/danny/Desktop/nexus/logs/selftest-launchd.err.log</string>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>Nice</key>
+    <integer>10</integer>
+  </dict>
+</plist>

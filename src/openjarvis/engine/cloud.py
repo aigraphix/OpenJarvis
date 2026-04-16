@@ -229,14 +229,14 @@ class CloudEngine(InferenceEngine):
     def _init_clients(self) -> None:
         if os.environ.get("OPENAI_API_KEY"):
             try:
-                import openai
+                import openai  # type: ignore
 
                 self._openai_client = openai.OpenAI()
             except ImportError:
                 pass
         if os.environ.get("ANTHROPIC_API_KEY"):
             try:
-                import anthropic
+                import anthropic  # type: ignore
 
                 self._anthropic_client = anthropic.Anthropic()
             except ImportError:
@@ -254,7 +254,7 @@ class CloudEngine(InferenceEngine):
         openrouter_key = os.environ.get("OPENROUTER_API_KEY")
         if openrouter_key:
             try:
-                import openai
+                import openai  # type: ignore
 
                 self._openrouter_client = openai.OpenAI(
                     base_url="https://openrouter.ai/api/v1",
@@ -265,7 +265,7 @@ class CloudEngine(InferenceEngine):
         minimax_key = os.environ.get("MINIMAX_API_KEY")
         if minimax_key:
             try:
-                import openai
+                import openai  # type: ignore
 
                 self._minimax_client = openai.OpenAI(
                     base_url="https://api.minimax.io/v1",
@@ -621,6 +621,7 @@ class CloudEngine(InferenceEngine):
         max_tokens: int,
         **kwargs: Any,
     ) -> Dict[str, Any]:
+        actual_model = model.removeprefix("google/")
         if self._google_client is None:
             raise EngineConnectionError(
                 "Google client not available — set "
@@ -708,7 +709,7 @@ class CloudEngine(InferenceEngine):
 
         t0 = time.monotonic()
         resp = self._google_client.models.generate_content(
-            model=model,
+            model=actual_model,
             contents=contents,
             config=config,
         )
@@ -1045,6 +1046,7 @@ class CloudEngine(InferenceEngine):
         max_tokens: int,
         **kwargs: Any,
     ) -> AsyncIterator[str]:
+        actual_model = model.removeprefix("google/")
         if self._google_client is None:
             raise EngineConnectionError("Google client not available")
         system_text = ""
@@ -1067,7 +1069,7 @@ class CloudEngine(InferenceEngine):
             config.system_instruction = system_text
 
         for chunk in self._google_client.models.generate_content_stream(
-            model=model,
+            model=actual_model,
             contents=contents,
             config=config,
         ):

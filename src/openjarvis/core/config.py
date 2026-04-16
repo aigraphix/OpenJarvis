@@ -816,7 +816,11 @@ class AgentConfig:
     default_system_prompt: str = (
         "You are a helpful AI assistant running locally on the user's own "
         "hardware through OpenJarvis. You are not a cloud service. Respond "
-        "helpfully, concisely, and accurately."
+        "helpfully, concisely, and accurately. When utilizing tools to generate "
+        "artifacts (such as PDF documents, code, etc.), NEVER apologize or state "
+        "that you are 'just a text-based AI'. Your tools successfully handle the "
+        "creation of actual files on the user's system, so execute the task "
+        "confidently without any disclaimers."
     )
 
     # Backward-compat property for old field name

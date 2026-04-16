@@ -128,6 +128,13 @@ interface AppState {
   // System panel
   systemPanelOpen: boolean;
 
+  // Canvas panel
+  canvasOpen: boolean;
+  canvasType: 'url' | 'code' | 'pdf' | 'none';
+  canvasContent: string;
+  canvasTitle: string;
+  canvasLoading: boolean;
+
   // Opt-in sharing
   optInEnabled: boolean;
   optInDisplayName: string;
@@ -171,6 +178,9 @@ interface AppState {
   setSidebarOpen: (open: boolean) => void;
   toggleSystemPanel: () => void;
   setSystemPanelOpen: (open: boolean) => void;
+  setCanvasOpen: (open: boolean) => void;
+  openCanvas: (type: 'url' | 'code' | 'pdf', content: string, title?: string) => void;
+  setCanvasLoading: (loading: boolean) => void;
 
   // Agents
   managedAgents: ManagedAgent[];
@@ -228,6 +238,11 @@ export const useAppStore = create<AppState>((set, get) => {
     commandPaletteOpen: false,
     sidebarOpen: true,
     systemPanelOpen: true,
+    canvasOpen: false,
+    canvasType: 'none',
+    canvasContent: '',
+    canvasTitle: '',
+    canvasLoading: false,
 
     optInEnabled: localStorage.getItem(OPTIN_KEY) === 'true',
     optInDisplayName: localStorage.getItem(OPTIN_NAME_KEY) || '',
@@ -355,6 +370,13 @@ export const useAppStore = create<AppState>((set, get) => {
           (message.content.length > 50 ? '...' : '');
       }
       saveConversations(store);
+      const canvasMatchAdd = message.content.match(/\[RENDER_CANVAS:(url|code|pdf):(.*?)\]/);
+      if (canvasMatchAdd) {
+        const type = canvasMatchAdd[1] as 'url' | 'code' | 'pdf';
+        const title = type === 'pdf' ? 'Generated PDF' : type === 'url' ? 'Web Preview' : 'Code';
+        get().openCanvas(type, canvasMatchAdd[2], title);
+      }
+
       set({
         messages: [...conv.messages],
         conversations: Object.values(store.conversations).sort(
@@ -383,6 +405,14 @@ export const useAppStore = create<AppState>((set, get) => {
         if (audio) lastMsg.audio = audio;
         conv.updatedAt = Date.now();
         saveConversations(store);
+
+        const canvasMatchUpdate = content.match(/\[RENDER_CANVAS:(url|code|pdf):(.*?)\]/);
+        if (canvasMatchUpdate) {
+          const type = canvasMatchUpdate[1] as 'url' | 'code' | 'pdf';
+          const title = type === 'pdf' ? 'Generated PDF' : type === 'url' ? 'Web Preview' : 'Code';
+          get().openCanvas(type, canvasMatchUpdate[2], title);
+        }
+
         set({ messages: [...conv.messages] });
       }
     },
@@ -418,6 +448,9 @@ export const useAppStore = create<AppState>((set, get) => {
     setSidebarOpen: (open: boolean) => set({ sidebarOpen: open }),
     toggleSystemPanel: () => set((s) => ({ systemPanelOpen: !s.systemPanelOpen })),
     setSystemPanelOpen: (open: boolean) => set({ systemPanelOpen: open }),
+    setCanvasOpen: (open: boolean) => set({ canvasOpen: open, ...(open ? {} : { canvasLoading: false }) }),
+    openCanvas: (type, content, title) => set({ canvasOpen: true, canvasType: type, canvasContent: content, canvasTitle: title || '', canvasLoading: false }),
+    setCanvasLoading: (loading: boolean) => set({ canvasLoading: loading }),
 
     // ── Agents ─────────────────────────────────────────────────────
 

@@ -14,6 +14,7 @@ import type { ChatMessage } from '../../types';
 function stripThinkTags(text: string): string {
   let cleaned = text.replace(/<think>[\s\S]*?<\/think>\s*/gi, '');
   cleaned = cleaned.replace(/^[\s\S]*?<\/think>\s*/i, '');
+  cleaned = cleaned.replace(/\[RENDER_CANVAS:(url|code|pdf):.*?\]/gi, '');
   return cleaned.trim();
 }
 
@@ -102,7 +103,10 @@ export function MessageBubble({ message }: Props) {
 
   if (isUser) {
     return (
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-end mb-4 group">
+        <div className="flex items-center gap-2 mr-2">
+          <CopyMessageButton content={message.content} />
+        </div>
         <div
           className="max-w-[85%] px-4 py-2.5 text-sm leading-relaxed"
           style={{
