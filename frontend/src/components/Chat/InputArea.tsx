@@ -15,6 +15,9 @@ export function InputArea() {
 
   const activeId = useAppStore((s) => s.activeId);
   const selectedModel = useAppStore((s) => s.selectedModel);
+  const selectedAgentPersona = useAppStore((s) => s.selectedAgentPersona);
+  const agentMode = useAppStore((s) => s.agentMode);
+  const setAgentMode = useAppStore((s) => s.setAgentMode);
   const streamState = useAppStore((s) => s.streamState);
   const messages = useAppStore((s) => s.messages);
   const speechEnabled = useAppStore((s) => s.settings.speechEnabled);
@@ -166,7 +169,15 @@ export function InputArea() {
 
     try {
       for await (const sseEvent of streamChat(
-        { model: selectedModel, messages: apiMessages, stream: true, temperature, max_tokens: maxTokens },
+        {
+          model: selectedModel,
+          messages: apiMessages,
+          stream: true,
+          temperature,
+          max_tokens: maxTokens,
+          ...(selectedAgentPersona ? { agent_persona: selectedAgentPersona } : {}),
+          ...(agentMode !== 'ask' ? { agent_mode: agentMode } : {}),
+        },
         controller.signal,
       )) {
         const eventName = sseEvent.event;
@@ -364,6 +375,7 @@ export function InputArea() {
     input,
     activeId,
     selectedModel,
+    selectedAgentPersona,
     streamState.isStreaming,
     createConversation,
     addMessage,
@@ -373,14 +385,32 @@ export function InputArea() {
   ]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       sendMessage();
     }
   };
 
   return (
-    <div className="px-4 pb-4 pt-2" style={{ maxWidth: 'var(--chat-max-width)', margin: '0 auto', width: '100%' }}>
+    <div className="px-4 pb-4 pt-2 flex flex-col gap-2" style={{ maxWidth: 'var(--chat-max-width)', margin: '0 auto', width: '100%' }}>
+      {/* Mode Selector */}
+      <div className="flex items-center gap-2 self-start px-1 text-xs">
+        {(['ask', 'plan', 'auto'] as const).map((mode) => (
+          <button
+            key={mode}
+            onClick={() => setAgentMode(mode)}
+            className={`px-3 py-1 rounded-full transition-colors cursor-pointer border`}
+            style={{
+              backgroundColor: agentMode === mode ? 'var(--color-accent)' : 'transparent',
+              color: agentMode === mode ? 'white' : 'var(--color-text-secondary)',
+              borderColor: agentMode === mode ? 'var(--color-accent)' : 'var(--color-border)',
+            }}
+          >
+            {mode.charAt(0).toUpperCase() + mode.slice(1)}
+          </button>
+        ))}
+      </div>
+
       <div
         className="flex items-center gap-2 rounded-2xl px-4 py-3 transition-shadow"
         style={{
@@ -434,8 +464,8 @@ export function InputArea() {
       </div>
       <div className="flex items-center justify-center mt-2 text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>
         <span>
-          <kbd className="font-mono">Enter</kbd> to send &middot;{' '}
-          <kbd className="font-mono">Shift+Enter</kbd> for new line
+          <kbd className="font-mono">Cmd+Enter</kbd> to send &middot;{' '}
+          <kbd className="font-mono">Enter</kbd> for new line
         </span>
       </div>
     </div>
