@@ -7,6 +7,8 @@ export interface ChatRequest {
   stream: true;
   temperature?: number;
   max_tokens?: number;
+  agent_persona?: string; // agency-* id, e.g. "agency-ai-engineer"
+  agent_mode?: string;    // "ask" | "plan" | "auto"
 }
 
 export async function* streamChat(

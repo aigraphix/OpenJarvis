@@ -3,12 +3,71 @@
 from __future__ import annotations
 
 from typing import Any
-import json
 from pathlib import Path
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    try:
+        import tomli as tomllib  # type: ignore[no-redef]
+    except ModuleNotFoundError:
+        tomllib = None  # type: ignore[assignment]
 
 from openjarvis.core.registry import ToolRegistry
 from openjarvis.core.types import ToolResult
 from openjarvis.tools._stubs import BaseTool, ToolSpec
+
+
+
+def _template_search_paths() -> list[Path]:
+    """Return ordered list of directories to search for agent templates."""
+    paths = []
+    bundled = Path(__file__).parent.parent / "agents" / "templates"
+    if bundled.is_dir():
+        paths.append(bundled)
+    agency = bundled / "agency"
+    if agency.is_dir():
+        paths.append(agency)
+    user = Path("~/.openjarvis/templates").expanduser()
+    if user.is_dir():
+        paths.append(user)
+    return paths
+
+
+def _find_template(agent_name: str) -> dict | None:
+    """Find a template by agent name across all search paths."""
+    name_lower = agent_name.lower().replace("-", "_").replace(" ", "_")
+    for search_dir in _template_search_paths():
+        for f in search_dir.glob("*.toml"):
+            stem = f.stem.lower().replace("-", "_")
+            if stem == name_lower or name_lower in stem:
+                try:
+                    if tomllib is not None:
+                        data = tomllib.loads(f.read_text(encoding="utf-8"))
+                        return data.get("template", {})
+                    else:
+                        # Fallback: regex extraction for Python <3.11
+                        import re
+                        content = f.read_text(encoding="utf-8")
+                        def _get(key: str) -> str:
+                            m = re.search(rf'^{key}\s*=\s*"([^"]*)"', content, re.MULTILINE)
+                            return m.group(1) if m else ""
+                        sp_m = re.search(r'system_prompt_template\s*=\s*"""(.+?)"""', content, re.DOTALL)
+                        tools_m = re.findall(r'"([^"]+)"', next(iter(re.findall(r'tools\s*=\s*\[([^\]]+)\]', content)), ""))
+                        return {
+                            "id": _get("id") or f.stem,
+                            "name": _get("name"),
+                            "description": _get("description"),
+                            "icon": _get("icon"),
+                            "tools": tools_m,
+                            "max_turns": int(_get("max_turns") or 10),
+                            "system_prompt_template": sp_m.group(1).strip() if sp_m else "You are an AI assistant.\n\n{instruction}",
+                        }
+
+                except Exception:
+                    continue
+    return None
+
 
 @ToolRegistry.register("delegate_task")
 class DelegateTaskTool(BaseTool):
@@ -21,15 +80,17 @@ class DelegateTaskTool(BaseTool):
         return ToolSpec(
             name="delegate_task",
             description=(
-                "Delegate a complex task or ask a question to one of the specialist real agents in the system (e.g., Coder, UI Builder, Researcher, Critic)."
-                " Always use this tool when you need specialized expertise or need multiple files generated/processed."
+                "Delegate a complex task to a specialist agent. "
+                "Available specialists: coder, researcher, critic, writer, devops, architect, analyst, planner. "
+                "Also supports any agency persona by name (e.g. 'agency-seo-specialist'). "
+                "Always use this when you need specialized expertise or need files generated/processed."
             ),
             parameters={
                 "type": "object",
                 "properties": {
                     "agent_name": {
                         "type": "string",
-                        "description": "The name of the agent to delegate to (e.g. 'coder', 'creative', 'architect', 'devops', 'writer'). Leave empty to use 'coder'.",
+                        "description": "Specialist to delegate to: coder, researcher, critic, writer, devops, architect, analyst, planner.",
                     },
                     "task": {
                         "type": "string",
@@ -45,7 +106,7 @@ class DelegateTaskTool(BaseTool):
     def execute(self, **params: Any) -> ToolResult:
         task = params.get("task", "")
         agent_name = params.get("agent_name", "coder")
-        
+
         if not task:
             return ToolResult(
                 tool_name="delegate_task",
@@ -54,37 +115,30 @@ class DelegateTaskTool(BaseTool):
             )
 
         try:
-            # Import everything needed to spawn the engine and run an agent synchronously 
             from openjarvis.engine._stubs import InferenceEngine
             from openjarvis.agents.orchestrator import OrchestratorAgent
-            from openjarvis.agents.manager import AgentManager
             from openjarvis.core.config import load_config
             from openjarvis.core.registry import ToolRegistry
-            import tomllib
 
-            # Find the template to get the system prompt
-            user_dir = Path("~/.openjarvis/templates").expanduser()
-            template_data = None
-            if user_dir.is_dir():
-                for f in user_dir.glob("*.toml"):
-                    if agent_name.lower() in f.name.lower():
-                        template_data = tomllib.loads(f.read_text(encoding="utf-8")).get("template", {})
-                        break
-                        
+            template_data = _find_template(agent_name)
             if not template_data:
-                # If specifically requested but not found
                 return ToolResult(
                     tool_name="delegate_task",
-                    content=f"Error: Specialized agent '{agent_name}' not found. Try 'coder', 'creative', or 'research'.",
+                    content=(
+                        f"Agent '{agent_name}' not found. "
+                        "Available specialists: coder, researcher, critic, writer, devops, architect, analyst, planner."
+                    ),
                     success=False,
                 )
 
-            system_prompt = template_data.get("system_prompt_template", "")
-            system_prompt = system_prompt.format(instruction=task)
+            system_prompt = template_data.get("system_prompt_template", "You are an AI assistant.")
+            try:
+                system_prompt = system_prompt.format(instruction=task)
+            except KeyError:
+                pass
 
-            # Re-initialize the same engine we use
             config = load_config()
-            cfg_engine = config.intelligence.preferred_engine
+            cfg_engine = getattr(config.intelligence, "preferred_engine", "cloud")
             cfg_model = config.intelligence.default_model
 
             if cfg_engine == "ollama":
@@ -94,11 +148,9 @@ class DelegateTaskTool(BaseTool):
                 from openjarvis.engine.cloud import CloudEngine
                 engine = CloudEngine()
 
-            # Instantiate tools for the sub-agent
-            tools_list = template_data.get("tools", ["shell_exec", "file_read", "file_write", "pdf_generate"])
+            tools_list = template_data.get("tools", ["shell_exec", "file_read", "file_write"])
             sub_tools = []
-            
-            # Helper to bind tools safely
+
             for t_name in tools_list:
                 try:
                     cls = ToolRegistry.get(t_name)
@@ -115,26 +167,25 @@ class DelegateTaskTool(BaseTool):
                 model=cfg_model,
                 tools=sub_tools,
                 system_prompt=system_prompt,
-                max_turns=3
+                max_turns=template_data.get("max_turns", 10),
             )
 
-            # Bind Executor manually as it usually happens via standard loop
             from openjarvis.core.events import EventBus
             from openjarvis.agents._stubs import AgentContext
             from openjarvis.tools._stubs import ToolExecutor
+
             bus = EventBus()
             executor = ToolExecutor(sub_tools, bus=bus)
             agent._executor = executor
 
-            # Execute run synchronously
             ctx = AgentContext()
             result = agent.run(input=task, context=ctx)
-            
+
             return ToolResult(
                 tool_name="delegate_task",
-                content=f"Agent '{agent_name}' completed the task:\n{result.content}",
+                content=f"[{agent_name.upper()}] {result.content}",
                 success=True,
-                metadata={"sub_turns": result.turns}
+                metadata={"sub_turns": result.turns},
             )
 
         except Exception as exc:
@@ -145,5 +196,6 @@ class DelegateTaskTool(BaseTool):
                 content=f"Delegation failed: {str(exc)}\n{err}",
                 success=False,
             )
+
 
 __all__ = ["DelegateTaskTool"]

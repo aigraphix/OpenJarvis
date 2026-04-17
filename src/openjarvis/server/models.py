@@ -28,6 +28,8 @@ class ChatCompletionRequest(BaseModel):
     max_tokens: int = 1024
     stream: bool = False
     tools: Optional[List[Dict[str, Any]]] = None
+    agent_persona: Optional[str] = None  # agency-* template id e.g. "agency-ai-engineer"
+    agent_mode: Optional[str] = None     # "ask" | "plan" | "auto" (default: "ask")
 
 
 # ---------------------------------------------------------------------------

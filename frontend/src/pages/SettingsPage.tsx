@@ -17,9 +17,11 @@ import {
   Key,
   Search,
   Brain,
+  Bot,
+  X,
 } from 'lucide-react';
 import { useAppStore, type ThemeMode } from '../lib/store';
-import { checkHealth, fetchSpeechHealth, getMemoryStats } from '../lib/api';
+import { checkHealth, fetchSpeechHealth, getMemoryStats, getBase } from '../lib/api';
 import { SystemPanel } from '../components/Chat/SystemPanel';
 import { preloadModel } from '../lib/api';
 
@@ -32,7 +34,7 @@ const CLOUD_PROVIDERS = [
   {
     name: 'Anthropic',
     storageKey: 'openjarvis-anthropic-key',
-    models: ['claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5'],
+    models: ['claude-sonnet-4-6', 'claude-opus-4-7', 'claude-haiku-4-5'],
   },
   {
     name: 'Google',
@@ -210,6 +212,144 @@ const themeOptions: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
   { value: 'system', label: 'System', icon: Monitor },
 ];
 
+// ── Agent Persona Section ─────────────────────────────────────────────────
+
+interface AgentPersona {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  division: string;
+  priority: boolean;
+}
+
+function AgentPersonaSection() {
+  const selectedAgentPersona = useAppStore((s) => s.selectedAgentPersona);
+  const setSelectedAgentPersona = useAppStore((s) => s.setSelectedAgentPersona);
+  const [personas, setPersonas] = useState<AgentPersona[]>([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    fetch(`${getBase()}/v1/agency-personas`)
+      .then((r) => r.json())
+      .then((d) => { setPersonas(d.personas || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const filtered = personas.filter((p) => {
+    const q = search.toLowerCase();
+    return !q || p.name.toLowerCase().includes(q) || p.division.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
+  });
+
+  // Group by division
+  const grouped = filtered.reduce<Record<string, AgentPersona[]>>((acc, p) => {
+    (acc[p.division] = acc[p.division] || []).push(p);
+    return acc;
+  }, {});
+
+  const divisions = Object.keys(grouped).sort();
+  const currentPersona = personas.find((p) => p.id === selectedAgentPersona);
+
+  return (
+    <div>
+      {/* Current badge */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Bot size={14} style={{ color: 'var(--color-accent)' }} />
+          <span className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+            {currentPersona ? `${currentPersona.icon} ${currentPersona.name}` : 'None (default assistant)'}
+          </span>
+        </div>
+        {selectedAgentPersona && (
+          <button
+            onClick={() => setSelectedAgentPersona('')}
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded-md cursor-pointer"
+            style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-tertiary)' }}
+          >
+            <X size={10} /> Clear
+          </button>
+        )}
+      </div>
+
+      {/* Search */}
+      <div className="relative mb-3">
+        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-tertiary)' }} />
+        <input
+          type="text"
+          placeholder="Search 153 agents..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full text-xs pl-7 pr-3 py-2 rounded-lg outline-none"
+          style={{
+            background: 'var(--color-bg-secondary)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-text)',
+          }}
+        />
+      </div>
+
+      {loading ? (
+        <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Loading personas...</p>
+      ) : (
+        <div className="flex flex-col gap-4" style={{ maxHeight: showAll ? '600px' : '320px', overflowY: 'auto' }}>
+          {divisions.map((division) => (
+            <div key={division}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--color-text-tertiary)' }}>
+                {division}
+              </p>
+              <div className="grid grid-cols-1 gap-1">
+                {grouped[division].map((p) => {
+                  const isActive = selectedAgentPersona === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedAgentPersona(isActive ? '' : p.id)}
+                      className="flex items-start gap-2.5 text-left px-3 py-2 rounded-lg transition-all cursor-pointer"
+                      style={{
+                        background: isActive ? 'var(--color-accent-subtle)' : 'var(--color-bg-secondary)',
+                        border: `1px solid ${isActive ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                      }}
+                    >
+                      <span className="text-base leading-none mt-0.5">{p.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-medium" style={{ color: isActive ? 'var(--color-accent)' : 'var(--color-text)' }}>
+                            {p.name}
+                          </span>
+                          {p.priority && (
+                            <span className="text-[9px] px-1 rounded" style={{ background: 'var(--color-accent-subtle)', color: 'var(--color-accent)' }}>★</span>
+                          )}
+                        </div>
+                        <p className="text-[11px] mt-0.5 line-clamp-1" style={{ color: 'var(--color-text-tertiary)' }}>
+                          {p.description}
+                        </p>
+                      </div>
+                      {isActive && <Check size={13} style={{ color: 'var(--color-accent)', flexShrink: 0, marginTop: 2 }} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!search && !loading && (
+        <button
+          onClick={() => setShowAll((v) => !v)}
+          className="mt-2 text-xs cursor-pointer"
+          style={{ color: 'var(--color-accent)' }}
+        >
+          {showAll ? 'Show less' : `Show all ${personas.length} agents ↓`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+
 export function SettingsPage() {
   const settings = useAppStore((s) => s.settings);
   const updateSettings = useAppStore((s) => s.updateSettings);
@@ -323,6 +463,11 @@ export function SettingsPage() {
         </div>
 
         <div className="flex flex-col gap-4">
+          {/* Agent Persona */}
+          <Section title="Agent Persona">
+            <AgentPersonaSection />
+          </Section>
+
           {/* Appearance */}
           <Section title="Appearance">
             <SettingRow label="Theme" description="Choose how OpenJarvis looks">

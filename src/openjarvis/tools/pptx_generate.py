@@ -34,14 +34,14 @@ class PPTXGenerateTool(BaseTool):
                     },
                     "topic": {
                         "type": "string",
-                        "description": "The topic/subject for the PPTX. When provided, the tool will auto-generate comprehensive content for the slides. Use this when you don't have the content written yet.",
+                        "description": "CRITICAL: You MUST provide this parameter. The topic/subject for the PPTX. When provided, the tool will auto-generate comprehensive content for the slides. Use this when you don't have the content written yet.",
                     },
                     "content": {
                         "type": "string",
                         "description": "Full text content for the PPTX slides. Use double newlines to separate slides.",
                     },
                 },
-                "required": [],
+                "required": ["topic"],
             },
             category="media",
             required_capabilities=[],

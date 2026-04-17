@@ -44,7 +44,7 @@ const CLOUD_PROVIDERS: CloudProvider[] = [
     storageKey: 'openjarvis-anthropic-key',
     models: [
       { id: 'claude-sonnet-4-6', desc: 'Claude Sonnet 4.6 — balanced' },
-      { id: 'claude-opus-4-6', desc: 'Claude Opus 4.6 — most capable' },
+      { id: 'claude-opus-4-7', desc: 'Claude Opus 4.7 — most capable' },
       { id: 'claude-haiku-4-5', desc: 'Claude Haiku 4.5 — fastest' },
     ],
   },

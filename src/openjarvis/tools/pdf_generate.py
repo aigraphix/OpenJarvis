@@ -34,18 +34,14 @@ class PDFGenerateTool(BaseTool):
                     },
                     "topic": {
                         "type": "string",
-                        "description": "The topic/subject for the PDF. When provided, the tool will auto-generate comprehensive content about this topic. Use this when you don't have the content written yet.",
+                        "description": "CRITICAL: You MUST provide this parameter. The topic/subject for the PDF. When provided, the tool will auto-generate comprehensive content about this topic. Use this when you don't have the content written yet.",
                     },
                     "content": {
                         "type": "string",
                         "description": "Full text content for the PDF. If provided, this is used directly instead of auto-generating from topic.",
                     },
-                    "is_presentation": {
-                        "type": "boolean",
-                        "description": "Set to true if the user requests a 'slide deck' or 'presentation'. This will render a landscape-oriented slide-deck PDF instead of a standard document.",
-                    },
                 },
-                "required": [],
+                "required": ["topic"],
             },
             category="media",
             required_capabilities=[],
@@ -141,10 +137,6 @@ class PDFGenerateTool(BaseTool):
         if not content and topic:
             if not title:
                 title = topic.title() if len(topic) < 60 else topic[:57] + "..."
-            
-            # Explicitly instruct the model to write slide content if it's a presentation
-            if is_pres and "slide" not in topic.lower():
-                topic = f"{topic} (Format as a slide deck presentation, 3-5 slides, use bullet points)"
                 
             content = self._generate_content_from_topic(topic, title)
         elif not content and not topic:
@@ -171,9 +163,7 @@ class PDFGenerateTool(BaseTool):
 
         try:
             import re
-            
-            orientation = "L" if is_pres else "portrait"
-            pdf = FPDF(orientation=orientation)
+            pdf = FPDF(orientation="portrait")
             pdf.set_auto_page_break(auto=True, margin=15)
             
             safe_content = content.encode('latin-1', errors='replace').decode('latin-1')

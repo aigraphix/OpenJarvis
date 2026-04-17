@@ -234,11 +234,14 @@ class CloudEngine(InferenceEngine):
                 self._openai_client = openai.OpenAI()
             except ImportError:
                 pass
-        if os.environ.get("ANTHROPIC_API_KEY"):
+        from dotenv import dotenv_values, find_dotenv
+        env_vars = dotenv_values(find_dotenv())
+        anthropic_key = env_vars.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+        if anthropic_key:
             try:
                 import anthropic  # type: ignore
 
-                self._anthropic_client = anthropic.Anthropic()
+                self._anthropic_client = anthropic.Anthropic(api_key=anthropic_key, base_url="https://api.anthropic.com")
             except ImportError:
                 pass
         gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get(
@@ -535,12 +538,14 @@ class CloudEngine(InferenceEngine):
                 "openjarvis[inference-cloud]"
             )
         system_text, chat_msgs = self._prepare_anthropic_messages(messages)
+        actual_model = model.removeprefix("anthropic/")
         create_kwargs: Dict[str, Any] = {
-            "model": model,
+            "model": actual_model,
             "messages": chat_msgs,
-            "temperature": temperature,
             "max_tokens": max_tokens,
         }
+        if "opus-4" not in actual_model:
+            create_kwargs["temperature"] = temperature
         if system_text:
             create_kwargs["system"] = system_text
 
@@ -1025,12 +1030,14 @@ class CloudEngine(InferenceEngine):
                 system_text = m.content
             else:
                 chat_msgs.append({"role": m.role.value, "content": m.content})
+        actual_model = model.removeprefix("anthropic/")
         create_kwargs: Dict[str, Any] = {
-            "model": model,
+            "model": actual_model,
             "messages": chat_msgs,
-            "temperature": temperature,
             "max_tokens": max_tokens,
         }
+        if "opus-4" not in actual_model:
+            create_kwargs["temperature"] = temperature
         if system_text:
             create_kwargs["system"] = system_text
         with self._anthropic_client.messages.stream(**create_kwargs) as stream:

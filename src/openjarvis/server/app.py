@@ -244,6 +244,22 @@ def create_app(
     except Exception as exc:
         logger.debug("Security middleware init skipped: %s", exc)
 
+    @app.on_event("startup")
+    async def _start_heartbeat():
+        import asyncio
+        from openjarvis.tools.soul_manage import SoulManageTool
+        soul = SoulManageTool()
+
+        async def _heartbeat_loop():
+            while True:
+                try:
+                    soul._pulse()
+                except Exception as e:
+                    logger.debug("Heartbeat pulse failed: %s", e)
+                await asyncio.sleep(300) # Every 5 minutes
+
+        asyncio.create_task(_heartbeat_loop())
+
     # API key authentication middleware
     if api_key:
         try:

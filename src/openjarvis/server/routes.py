@@ -26,6 +26,96 @@ from openjarvis.server.models import (
 
 router = APIRouter()
 
+# ---------------------------------------------------------------------------
+# Agency persona helpers
+# ---------------------------------------------------------------------------
+
+_AGENCY_TEMPLATES_DIR = (
+    __import__("pathlib").Path(__file__).parent.parent / "agents" / "templates" / "agency"
+)
+
+
+def _load_persona_system_prompt(persona_id: str) -> str | None:
+    """Load system_prompt_template from an agency TOML template by id."""
+    try:
+        import re
+        toml_path = _AGENCY_TEMPLATES_DIR / f"{persona_id}.toml"
+        if not toml_path.exists():
+            return None
+        content = toml_path.read_text(encoding="utf-8")
+        # Extract the triple-quoted system_prompt_template value
+        m = re.search(r'system_prompt_template\s*=\s*"""(.+?)"""', content, re.DOTALL)
+        if m:
+            return m.group(1).strip()
+        return None
+    except Exception:
+        return None
+
+
+def _list_agency_personas() -> list[dict]:
+    """Return a list of all agency persona metadata from TOML templates."""
+    import re
+    personas = []
+    if not _AGENCY_TEMPLATES_DIR.exists():
+        return personas
+    for toml_file in sorted(_AGENCY_TEMPLATES_DIR.glob("*.toml")):
+        try:
+            content = toml_file.read_text(encoding="utf-8")
+            def _get(key: str) -> str:
+                m = re.search(rf'^{key}\s*=\s*"([^"]*)"', content, re.MULTILINE)
+                return m.group(1) if m else ""
+            def _get_bool(key: str) -> bool:
+                m = re.search(rf'^{key}\s*=\s*(true|false)', content, re.MULTILINE)
+                return m.group(1) == "true" if m else False
+            personas.append({
+                "id": _get("id"),
+                "name": _get("name"),
+                "description": _get("description"),
+                "icon": _get("icon"),
+                "division": _get("division"),
+                "priority": _get_bool("priority"),
+            })
+        except Exception:
+            continue
+    return personas
+
+
+# ---------------------------------------------------------------------------
+# Autonomous mode helpers
+# ---------------------------------------------------------------------------
+
+_MODE_PREFIXES: dict[str, str] = {
+    "ask": "",  # No prefix — default conversational behavior
+    "plan": (
+        "## Autonomous Mode: PLAN\n\n"
+        "Before taking any action, produce a numbered execution plan listing every step you intend to take. "
+        "Format it as:\n\n"
+        "**Plan:**\n"
+        "1. Step one\n"
+        "2. Step two\n"
+        "...\n\n"
+        "Then ask: \"Should I proceed with this plan?\" "
+        "Wait for explicit approval before executing. "
+        "Once approved, execute each step and report results.\n\n"
+    ),
+    "auto": (
+        "## Autonomous Mode: AUTO\n\n"
+        "You are operating in full autonomous mode. Execute tasks end-to-end without asking for approval or confirmation. "
+        "Think step by step, use your tools, and complete the goal fully. "
+        "Stream each step as you go using the format:\n\n"
+        "**[Step N]** Brief description of what you are doing...\n\n"
+        "After all steps, output a final summary: what was done, what changed, and any follow-up recommendations. "
+        "Do not stop mid-task to ask questions — make reasonable decisions and proceed.\n\n"
+    ),
+}
+
+
+def _build_mode_system_prefix(agent_mode: str | None) -> str:
+    """Return the system prompt prefix for the given autonomous mode."""
+    if not agent_mode:
+        return ""
+    return _MODE_PREFIXES.get(agent_mode.lower(), "")
+
 
 def _to_messages(chat_messages) -> list[Message]:
     """Convert Pydantic ChatMessage objects to core Message objects."""
@@ -50,7 +140,52 @@ async def chat_completions(request_body: ChatCompletionRequest, request: Request
     agent = getattr(request.app.state, "agent", None)
     model = request_body.model
 
+    if agent is not None and getattr(agent, "agent_id", "") == "orchestrator":
+        if request_body.agent_mode == "auto":
+            # Give auto mode a deep max_turns limit so it doesn't artificially truncate
+            # complex coding/research tasks
+            agent._max_turns = 30
+        else:
+            # Revert to standard limits for ask/plan so they don't loop endlessly
+            agent._max_turns = 10
+
+    # ── Autonomous mode + agency persona injection ────────────────────────
+    from openjarvis.server.models import ChatMessage as _CM
+
+    mode_prefix = _build_mode_system_prefix(request_body.agent_mode)
+    persona_prompt = (
+        _load_persona_system_prompt(request_body.agent_persona)
+        if request_body.agent_persona
+        else None
+    )
+
+    # Build the combined prefix (mode instruction first, then persona)
+    combined_prefix = ""
+    if mode_prefix:
+        combined_prefix += mode_prefix
+    if persona_prompt:
+        combined_prefix += persona_prompt
+
+    if combined_prefix:
+        has_system = any(m.role == "system" for m in request_body.messages)
+        if not has_system:
+            request_body.messages = [
+                _CM(role="system", content=combined_prefix)
+            ] + list(request_body.messages)
+        else:
+            new_msgs = []
+            for m in request_body.messages:
+                if m.role == "system":
+                    new_msgs.append(_CM(
+                        role="system",
+                        content=combined_prefix + "\n\n" + m.content,
+                    ))
+                else:
+                    new_msgs.append(m)
+            request_body.messages = new_msgs
+
     # Inject memory context into messages before dispatching
+
     config = getattr(request.app.state, "config", None)
     memory_backend = getattr(request.app.state, "memory_backend", None)
     if (
@@ -463,6 +598,44 @@ async def list_models(request: Request) -> ModelListResponse:
     )
 
 
+@router.get("/v1/agency-personas")
+async def list_agency_personas():
+    """Return the full list of agency agent personas available for selection."""
+    personas = _list_agency_personas()
+    return {"personas": personas, "count": len(personas)}
+
+
+@router.get("/v1/swarm-agents")
+async def list_swarm_agents():
+    """Return the list of core specialist swarm agents (coder, researcher, etc.)."""
+    import re
+    from pathlib import Path
+
+    templates_dir = Path(__file__).parent.parent / "agents" / "templates"
+    CORE_SPECIALISTS = {"coder", "researcher", "critic", "writer", "devops", "architect", "analyst", "planner"}
+    agents = []
+
+    for toml_file in sorted(templates_dir.glob("*.toml")):
+        if toml_file.stem not in CORE_SPECIALISTS:
+            continue
+        try:
+            content = toml_file.read_text(encoding="utf-8")
+            def _get(key: str) -> str:
+                m = re.search(rf'^{key}\s*=\s*"([^"]*)"', content, re.MULTILINE)
+                return m.group(1) if m else ""
+            agents.append({
+                "id": _get("id") or toml_file.stem,
+                "name": _get("name"),
+                "description": _get("description"),
+                "icon": _get("icon"),
+                "tools": re.findall(r'"([^"]+)"', next(iter(re.findall(r'tools\s*=\s*\[([^\]]+)\]', content)), "")),
+            })
+        except Exception:
+            continue
+
+    return {"agents": agents, "count": len(agents)}
+
+
 @router.post("/v1/models/pull")
 async def pull_model(request: Request):
     """Pull / download a model from the Ollama registry."""
@@ -690,6 +863,23 @@ async def health(request: Request):
     if not healthy:
         raise HTTPException(status_code=503, detail="Engine unhealthy")
     return {"status": "ok"}
+
+@router.get("/api/system/soul")
+async def get_system_soul() -> Dict[str, Any]:
+    """Retrieve the current persistent agent identity from SOUL.md"""
+    soul_path = Path.home() / ".openjarvis" / "SOUL.md"
+    if not soul_path.exists():
+        return {"content": "", "exists": False, "last_pulse": None}
+    
+    try:
+        content = soul_path.read_text(encoding="utf-8")
+        # Try to parse last_pulse from content if we want, but returning raw is fine
+        return {"content": content, "exists": True}
+    except Exception as e:
+        logger.error(f"Failed to read SOUL.md: {e}")
+        return {"content": "", "exists": True, "error": str(e)}
+
+
 
 
 # ---------------------------------------------------------------------------

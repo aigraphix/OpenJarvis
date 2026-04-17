@@ -113,6 +113,8 @@ interface AppState {
   models: ModelInfo[];
   modelsLoading: boolean;
   selectedModel: string;
+  selectedAgentPersona: string;  // agency-* template id, empty = no persona
+  agentMode: 'ask' | 'plan' | 'auto';  // autonomous mode
   serverInfo: ServerInfo | null;
   savings: SavingsData | null;
 
@@ -166,6 +168,8 @@ interface AppState {
   setModels: (models: ModelInfo[]) => void;
   setModelsLoading: (loading: boolean) => void;
   setSelectedModel: (model: string) => void;
+  setSelectedAgentPersona: (persona: string) => void;
+  setAgentMode: (mode: 'ask' | 'plan' | 'auto') => void;
   setServerInfo: (info: ServerInfo | null) => void;
   setSavings: (data: SavingsData | null) => void;
 
@@ -229,7 +233,9 @@ export const useAppStore = create<AppState>((set, get) => {
 
     models: [],
     modelsLoading: true,
-    selectedModel: '',
+    selectedModel: localStorage.getItem('openjarvis-selected-model') || '',
+    selectedAgentPersona: localStorage.getItem('openjarvis-selected-persona') || '',
+    agentMode: (localStorage.getItem('openjarvis-agent-mode') as 'ask' | 'plan' | 'auto') || 'ask',
     serverInfo: null,
     savings: null,
 
@@ -429,7 +435,18 @@ export const useAppStore = create<AppState>((set, get) => {
 
     setModels: (models: ModelInfo[]) => set({ models }),
     setModelsLoading: (loading: boolean) => set({ modelsLoading: loading }),
-    setSelectedModel: (model: string) => set({ selectedModel: model }),
+    setSelectedModel: (model: string) => {
+      localStorage.setItem('openjarvis-selected-model', model);
+      set({ selectedModel: model });
+    },
+    setSelectedAgentPersona: (persona: string) => {
+      localStorage.setItem('openjarvis-selected-persona', persona);
+      set({ selectedAgentPersona: persona });
+    },
+    setAgentMode: (mode: 'ask' | 'plan' | 'auto') => {
+      localStorage.setItem('openjarvis-agent-mode', mode);
+      set({ agentMode: mode });
+    },
     setServerInfo: (info: ServerInfo | null) => set({ serverInfo: info }),
     setSavings: (data: SavingsData | null) => set({ savings: data }),
 
